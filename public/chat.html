@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Room</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="flex flex-col h-screen bg-gray-100">
+    <header class="bg-blue-500 text-white p-4 flex justify-between items-center">
+        <h1 class="text-lg font-bold">Chat Room</h1>
+        <div>
+            <a href="/profile" class="bg-yellow-500 px-4 py-2 rounded hover:bg-yellow-600 mr-2">Profile</a>
+            <a href="/logout" class="bg-red-500 px-4 py-2 rounded hover:bg-red-600">Logout</a>
+        </div>
+    </header>
+
+    <main class="flex-1 flex flex-col items-center justify-center p-4">
+        <div class="w-full max-w-2xl p-4 bg-white rounded-lg shadow-lg">
+            <div id="messages" class="h-80 overflow-y-auto border border-gray-300 rounded p-4 bg-gray-50 mb-4"></div>
+            <form id="chat-form" class="flex">
+                <input
+                    type="text"
+                    id="message-input"
+                    class="flex-1 border border-gray-300 rounded p-2"
+                    placeholder="Type a message..."
+                    required
+                />
+                <button
+                    type="submit"
+                    class="ml-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                >
+                    Send
+                </button>
+            </form>
+        </div>
+    </main>
+
+    <script>
+        const socket = io();
+        const messagesDiv = document.getElementById("messages");
+        const form = document.getElementById("chat-form");
+        const messageInput = document.getElementById("message-input");
+
+        // Load previous messages
+        socket.on("load messages", (messages) => {
+            messages.forEach(({ username, message, profilePicture, timestamp }) => {
+                addMessageToUI(username, message, profilePicture, timestamp);
+            });
+        });
+
+        // Handle incoming messages
+        socket.on("chat message", ({ username, message, profilePicture, timestamp }) => {
+            addMessageToUI(username, message, profilePicture, timestamp);
+        });
+
+        // Send message
+        form.addEventListener("submit", (e) => {
+            e.preventDefault();
+            const message = messageInput.value;
+            socket.emit("chat message", { username: "<%= username %>", message }); // Replace with server session username
+            messageInput.value = "";
+        });
+
+        // Append message to UI
+        function addMessageToUI(username, message, profilePicture, timestamp) {
+            const messageDiv = document.createElement("div");
+            messageDiv.classList.add("flex", "items-start", "mb-4");
+            messageDiv.innerHTML = `
+               <img src="${profilePicture}" alt="Profile Picture" class="w-10 h-10 rounded-full mr-2" style="object-cover;">
+                <div>
+                    <div class="flex items-center">
+                        <span class="font-bold text-blue-600 mr-2">${username}</span>
+                        <span class="text-xs text-gray-500">${timestamp}</span>
+                    </div>
+                    <p>${message}</p>
+                </div>
+            `;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+    </script>
+</body>
+</html>
